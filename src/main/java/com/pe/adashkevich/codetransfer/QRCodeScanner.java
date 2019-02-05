@@ -7,10 +7,7 @@ import com.google.zxing.common.HybridBinarizer;
 import javax.imageio.ImageIO;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Path;
@@ -19,7 +16,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
-public class QRCodeScanner {
+public class QRCodeScanner extends QRCodeUtil {
 
     private static final String SCREENSHOT_PATH = "./screenshot.jpg";
     private static final int MAX_SCANNING_PAUSE = 30;
@@ -34,54 +31,65 @@ public class QRCodeScanner {
     }
 
     private static String decodeQRCode(Path qrCode) throws IOException {
+        //long startTime = System.currentTimeMillis();
         BufferedImage bufferedImage = ImageIO.read(qrCode.toFile());
         LuminanceSource source = new BufferedImageLuminanceSource(bufferedImage);
         BinaryBitmap bitmap = new BinaryBitmap(new HybridBinarizer(source));
 
         Map<DecodeHintType,Object> tmpHintsMap = new EnumMap<>(DecodeHintType.class);
-        tmpHintsMap.put(DecodeHintType.TRY_HARDER, Boolean.FALSE);
+        tmpHintsMap.put(DecodeHintType.TRY_HARDER, Boolean.TRUE);
         tmpHintsMap.put(DecodeHintType.POSSIBLE_FORMATS, EnumSet.of(BarcodeFormat.QR_CODE));
-        tmpHintsMap.put(DecodeHintType.CHARACTER_SET, "ISO-8859-1");
+        tmpHintsMap.put(DecodeHintType.CHARACTER_SET, CodeTransferCfg.QR_DATA_ENCODING);
 
         try {
             Result result = new MultiFormatReader().decode(bitmap, tmpHintsMap);
+            //System.out.println("QR code decoding take: " + (System.currentTimeMillis() - startTime) + "ms");
             return result.getText();
         } catch (NotFoundException e) {
+            //System.out.println("Unsuccessful decoding attempt: " + (System.currentTimeMillis() - startTime) + "ms");
             return null;
         }
     }
 
     private static void screenCapture(OutputStream os) throws IOException, AWTException, InterruptedException {
+        //long startTime = System.currentTimeMillis();
         boolean startScanning = false;
         String lastScannedData = "";
         long lastScannedTime = 0;
-        int counter = 0;
+        int counter = -1;
         while(!startScanning || (System.currentTimeMillis() - lastScannedTime) < MAX_SCANNING_PAUSE * 1000) {
             takeScreenshot();
             String qrCodeData = decodeQRCode(getScreenshotPath());
             if(qrCodeData != null && !lastScannedData.equals(qrCodeData)) {
-                os.write(qrCodeData.getBytes(Charset.forName("ISO-8859-1")));
                 lastScannedData = qrCodeData;
+                counter = getQRCodeNumber(qrCodeData);
+                qrCodeData = qrCodeData.substring(4);
+                os.write(qrCodeData.getBytes(Charset.forName(CodeTransferCfg.QR_DATA_ENCODING)));
                 startScanning = true;
                 lastScannedTime = System.currentTimeMillis();
-                System.out.println(++counter);
+                System.out.println(counter);
             }
             TimeUnit.MILLISECONDS.sleep(50);
+            //System.out.println("Iteration of screen capture take: " + (System.currentTimeMillis() - startTime) + "ms");
         }
         os.flush();
+    }
+
+    private static int getQRCodeNumber(String qrCodeData) throws UnsupportedEncodingException {
+        return fromByteArray(qrCodeData.substring(0, 4).getBytes(CodeTransferCfg.QR_DATA_ENCODING));
     }
 
     private static Path getScreenshotPath() {
         return FileSystems.getDefault().getPath(SCREENSHOT_PATH);
     }
+
     public static void main(String[] args) {
         try {
-            try(OutputStream os = new FileOutputStream(new File("VatComplianceEmailReport.java"))) {
+            try(OutputStream os = new FileOutputStream(new File(args[0]))) {
                 screenCapture(os);
             }
-
-        } catch (Exception ex) {
-            System.err.println("Unknown exception :: " + ex.getMessage());
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 }
