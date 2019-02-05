@@ -1,0 +1,6 @@
+target/
+.idea/
+qr-code.png
+screenshot.jpg
+VatComplianceEmailReport.java
+*.iml

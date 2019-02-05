@@ -43,9 +43,10 @@ public class QRCodeGenerator {
         dt.open(f);
     }
 
-    private static void closeQRCode() throws IOException {
+    private static void closeQRCode() throws IOException, InterruptedException {
         Runtime runtime = Runtime.getRuntime();
-        runtime.exec("Taskkill /IM Microsoft.Photos.exe /F"); //Process process =
+        Process process = runtime.exec("Taskkill /IM Microsoft.Photos.exe /F");
+        process.waitFor(); // TODO check process finish result
     }
 
     public static byte[] readBytes(InputStream is, int bufferSize) throws IOException {
