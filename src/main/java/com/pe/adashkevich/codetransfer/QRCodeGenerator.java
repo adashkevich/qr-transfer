@@ -5,6 +5,9 @@ import com.google.zxing.WriterException;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import com.pe.adashkevich.codetransfer.commands.Command;
+import com.pe.adashkevich.codetransfer.commands.EndFileTransferCommand;
+import com.pe.adashkevich.codetransfer.commands.FileTransferCommand;
 
 import java.awt.*;
 import java.io.*;
@@ -67,18 +70,33 @@ public class QRCodeGenerator extends QRCodeUtil {
         return readBytes;
     }
 
-    private void transferFileByQRCodes(Path path) throws IOException, InterruptedException, WriterException {
+    private Command createFileTransferCommand(File file) {
+        return FileTransferCommand.builder()
+                .fileName(file.getName())
+                .filePath(file.getPath())
+                .fileSize((int)file.length())
+                .chunkSize(CodeTransferCfg.MAX_QR_CODE_DATA_SIZE)
+                .build();
+    }
+
+    public void transferFileByQRCodes(Path path) throws IOException, InterruptedException, WriterException {
+        generateQRCodeImage(createFileTransferCommand(path.toFile()).toString());
+        showQRCode();
+
         int counter = 0;
         InputStream is = new FileInputStream(path.toFile());
 
         byte[] fileContent;
         while ((fileContent = readBytes(is, CodeTransferCfg.MAX_QR_CODE_DATA_SIZE)).length != 0) {
-            ++counter;
             fileContent = concat(toByteArray(counter), fileContent);
             generateQRCodeImage(encode(fileContent));
             showQRCode();
+            ++counter;
         }
         System.out.println(String.format("File split to %d QR codes", counter));
+
+        generateQRCodeImage(new EndFileTransferCommand().toString());
+        showQRCode();
     }
 
     private void createFileNameQRCode(Path path) throws IOException, WriterException, InterruptedException {
@@ -88,10 +106,10 @@ public class QRCodeGenerator extends QRCodeUtil {
     }
 
     public static void main(String[] args) {
-        QRCodeGenerator genetator = new QRCodeGenerator();
+        QRCodeGenerator generator = new QRCodeGenerator();
         try {
             Path archivePath = Paths.get(args[0]);
-            genetator.transferFileByQRCodes(archivePath);
+            generator.transferFileByQRCodes(archivePath);
         } catch (Exception e) {
             e.printStackTrace();
         }

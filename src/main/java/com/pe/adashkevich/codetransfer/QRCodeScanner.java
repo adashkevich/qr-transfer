@@ -82,10 +82,19 @@ public class QRCodeScanner extends QRCodeUtil {
         return qrCodeData;
     }
 
+    public int getFileChunkNumber() throws UnsupportedEncodingException {
+        return getQRCodeNumber(qrCodeData);
+    }
+
+    public String getFileChunkData() {
+        return qrCodeData.substring(4, qrCodeData.length() - 3);
+    }
+
     public boolean waitQRCode() throws Exception {
         takeScreenshot();
         qrCodeData = decodeQRCode(getScreenshotPath());
         if(qrCodeData != null && !lastScannedData.equals(qrCodeData)) {
+            lastScannedData = qrCodeData;
             return true;
         }
         TimeUnit.MILLISECONDS.sleep(50);

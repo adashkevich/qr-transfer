@@ -1,6 +1,7 @@
 package com.pe.adashkevich.codetransfer;
 
 import com.pe.adashkevich.codetransfer.commands.Command;
+import com.pe.adashkevich.codetransfer.commands.EndFileTransferCommand;
 import com.pe.adashkevich.codetransfer.commands.FileTransferCommand;
 import com.pe.adashkevich.codetransfer.commands.MakeDirectoryCommand;
 
@@ -14,7 +15,7 @@ public class QRCommandScanner {
         qrCodeScanner = new QRCodeScanner();
     }
 
-    private boolean isCommand(String qrData) {
+    public static boolean isCommand(String qrData) {
         return qrData.startsWith("#cmd");
     }
 
@@ -27,23 +28,33 @@ public class QRCommandScanner {
 
         switch (commandStr.nextToken()) {
             case "TF":
-                return new FileTransferCommand();
+                return new FileTransferCommand(qrData, qrCodeScanner);
             case "MD":
                 return new MakeDirectoryCommand(qrData);
+            case "END":
+                return new EndFileTransferCommand();
+
         }
         throw new Exception("Command not recognized!");
     }
 
-    public static void main(String[] args) {
-        try {
-            QRCommandScanner cs = new QRCommandScanner();
+    public void scan() throws Exception {
 
-            while (true) {
-                if(cs.qrCodeScanner.waitQRCode()) {
-                    Command command = cs.scanCommand(cs.qrCodeScanner.getQrCodeData());
+        while (true) {
+            if (qrCodeScanner.waitQRCode()) {
+                if(isCommand(qrCodeScanner.getQrCodeData())) {
+                    Command command = scanCommand(qrCodeScanner.getQrCodeData());
                     System.out.println(command.toString());
+                    command.exec();
                 }
             }
+        }
+    }
+
+    public static void main(String[] args) {
+        try {
+            QRCommandScanner scanner = new QRCommandScanner();
+            scanner.scan();
         } catch (Exception e) {
             e.printStackTrace();
         }
