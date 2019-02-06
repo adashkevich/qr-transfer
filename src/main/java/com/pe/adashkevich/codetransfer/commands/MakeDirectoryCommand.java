@@ -13,7 +13,7 @@ public class MakeDirectoryCommand implements Command {
     }
 
     public MakeDirectoryCommand(String qrCodeData) {
-        String[] commandCfg = qrCodeData.split("|");
+        String[] commandCfg = qrCodeData.split("\\|");
         folderPath = commandCfg[2];
     }
 

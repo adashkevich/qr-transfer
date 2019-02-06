@@ -75,6 +75,23 @@ public class QRCodeScanner extends QRCodeUtil {
         os.flush();
     }
 
+    private String lastScannedData = "";
+    String qrCodeData = "";
+
+    public String getQrCodeData() {
+        return qrCodeData;
+    }
+
+    public boolean waitQRCode() throws Exception {
+        takeScreenshot();
+        qrCodeData = decodeQRCode(getScreenshotPath());
+        if(qrCodeData != null && !lastScannedData.equals(qrCodeData)) {
+            return true;
+        }
+        TimeUnit.MILLISECONDS.sleep(50);
+        return false;
+    }
+
     private static int getQRCodeNumber(String qrCodeData) throws UnsupportedEncodingException {
         return fromByteArray(qrCodeData.substring(0, 4).getBytes(CodeTransferCfg.QR_DATA_ENCODING));
     }

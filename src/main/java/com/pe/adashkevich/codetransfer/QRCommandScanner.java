@@ -8,6 +8,12 @@ import java.util.StringTokenizer;
 
 public class QRCommandScanner {
 
+    public QRCodeScanner qrCodeScanner;
+
+    public QRCommandScanner() {
+        qrCodeScanner = new QRCodeScanner();
+    }
+
     private boolean isCommand(String qrData) {
         return qrData.startsWith("#cmd");
     }
@@ -32,6 +38,12 @@ public class QRCommandScanner {
         try {
             QRCommandScanner cs = new QRCommandScanner();
 
+            while (true) {
+                if(cs.qrCodeScanner.waitQRCode()) {
+                    Command command = cs.scanCommand(cs.qrCodeScanner.getQrCodeData());
+                    System.out.println(command.toString());
+                }
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
