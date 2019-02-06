@@ -18,38 +18,45 @@ import java.util.concurrent.TimeUnit;
 
 public class QRCodeGenerator extends QRCodeUtil {
 
-    private static final String QR_CODE_IMAGE_PATH = "./qr-code.png";
+    private static final Path qrCodePath = FileSystems.getDefault().getPath("./qr-code.png");
 
-    private static void generateQRCodeImage(String text, int size, Path path)
+    public void generateQRCodeImage(String text)
             throws WriterException, IOException {
         //System.out.println("========================");
         //System.out.println(text);
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
-        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, size, size);
-        MatrixToImageWriter.writeToPath(bitMatrix, "PNG", path);
+        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, CodeTransferCfg.QR_CODE_IMAGE_SIZE,
+                CodeTransferCfg.QR_CODE_IMAGE_SIZE);
+        MatrixToImageWriter.writeToPath(bitMatrix, "PNG", qrCodePath);
     }
 
-    private static String fileContent(Path path) throws IOException {
+    private String fileContent(Path path) throws IOException {
         return encode(Files.readAllBytes(path));
     }
 
-    private static String encode(byte[] bytes) {
+    private String encode(byte[] bytes) {
         return new String(bytes, Charset.forName(CodeTransferCfg.QR_DATA_ENCODING));
     }
 
-    private static void openQRCode(Path path) throws IOException {
+    public void showQRCode() throws IOException, InterruptedException {
+        openQRCode(qrCodePath);
+        TimeUnit.SECONDS.sleep(5);
+        closeQRCode();
+    }
+
+    private void openQRCode(Path path) throws IOException {
         File f = path.toFile();
         Desktop dt = Desktop.getDesktop();
         dt.open(f);
     }
 
-    private static void closeQRCode() throws IOException, InterruptedException {
+    private void closeQRCode() throws IOException, InterruptedException {
         Runtime runtime = Runtime.getRuntime();
         Process process = runtime.exec("Taskkill /IM Microsoft.Photos.exe /F");
         process.waitFor(); // TODO check process finish result
     }
 
-    public static byte[] readBytes(InputStream is, int bufferSize) throws IOException {
+    public byte[] readBytes(InputStream is, int bufferSize) throws IOException {
         byte[] readBytes = new byte[bufferSize];
         int bytesReadCount = is.read(readBytes, 0, bufferSize);
         if (bytesReadCount == -1) {
@@ -60,33 +67,31 @@ public class QRCodeGenerator extends QRCodeUtil {
         return readBytes;
     }
 
-    private static void transferFileByQRCodes(Path path) throws IOException, InterruptedException, WriterException {
+    private void transferFileByQRCodes(Path path) throws IOException, InterruptedException, WriterException {
         int counter = 0;
         InputStream is = new FileInputStream(path.toFile());
-        Path qrCodePath = FileSystems.getDefault().getPath(QR_CODE_IMAGE_PATH);
+
         byte[] fileContent;
         while ((fileContent = readBytes(is, CodeTransferCfg.MAX_QR_CODE_DATA_SIZE)).length != 0) {
             ++counter;
             fileContent = concat(toByteArray(counter), fileContent);
-            generateQRCodeImage(encode(fileContent), CodeTransferCfg.QR_CODE_IMAGE_SIZE, qrCodePath);
-            openQRCode(qrCodePath);
-            TimeUnit.SECONDS.sleep(5);
-            closeQRCode();
+            generateQRCodeImage(encode(fileContent));
+            showQRCode();
         }
         System.out.println(String.format("File split to %d QR codes", counter));
     }
 
-    private static byte[] concat(byte[] a, byte[] b) throws IOException {
-        ByteArrayOutputStream os = new ByteArrayOutputStream( );
-        os.write(a);
-        os.write(b);
-        return os.toByteArray();
+    private void createFileNameQRCode(Path path) throws IOException, WriterException, InterruptedException {
+        byte[] fileContent = concat(toByteArray(0), path.getFileName().toString().getBytes(CodeTransferCfg.QR_DATA_ENCODING));
+        generateQRCodeImage(encode(fileContent));
+        showQRCode();
     }
 
     public static void main(String[] args) {
+        QRCodeGenerator genetator = new QRCodeGenerator();
         try {
             Path archivePath = Paths.get(args[0]);
-            transferFileByQRCodes(archivePath);
+            genetator.transferFileByQRCodes(archivePath);
         } catch (Exception e) {
             e.printStackTrace();
         }

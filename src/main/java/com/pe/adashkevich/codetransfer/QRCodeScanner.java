@@ -19,7 +19,7 @@ import java.util.concurrent.TimeUnit;
 public class QRCodeScanner extends QRCodeUtil {
 
     private static final String SCREENSHOT_PATH = "./screenshot.jpg";
-    private static final int MAX_SCANNING_PAUSE = 30;
+    private static final int MAX_SCANNING_PAUSE = 10;
 
     private static void takeScreenshot() throws AWTException, IOException {
         Path screenshotPath = getScreenshotPath();
@@ -63,7 +63,7 @@ public class QRCodeScanner extends QRCodeUtil {
             if(qrCodeData != null && !lastScannedData.equals(qrCodeData)) {
                 lastScannedData = qrCodeData;
                 counter = getQRCodeNumber(qrCodeData);
-                qrCodeData = qrCodeData.substring(4);
+                qrCodeData = qrCodeData.substring(4, qrCodeData.length() - 3);
                 os.write(qrCodeData.getBytes(Charset.forName(CodeTransferCfg.QR_DATA_ENCODING)));
                 startScanning = true;
                 lastScannedTime = System.currentTimeMillis();
