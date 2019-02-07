@@ -29,11 +29,11 @@ public class Helper {
     }
 
     private void addFileToPlan(File entryPoint) {
-        planCSV += "\n" + entryPoint.getName() + "," + entryPoint.getPath();
+        planCSV += "\n" + entryPoint.getPath();
     }
 
     private String createPlaneTemplate() {
-        return "fileName,filePath";
+        return "file";
     }
 
     public static void main(String[] args) {

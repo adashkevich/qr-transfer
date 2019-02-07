@@ -53,7 +53,7 @@ public class FileTransferCommand implements Command {
                 int chunkNum = qrCodeScanner.getFileChunkNumber();
                 String chunkData = qrCodeScanner.getFileChunkData();
                 int filePosition = chunkSize*chunkNum;
-                System.out.println(filePosition + "|" + filePosition + chunkData.length());
+                System.out.println(filePosition + "-" + (filePosition + chunkData.length()));
                 Arrays.fill(transferResult, filePosition, filePosition + chunkData.length(), Boolean.TRUE);
 
                 targetFile.seek(chunkSize*chunkNum);
@@ -125,7 +125,6 @@ public class FileTransferCommand implements Command {
     public RandomAccessFile getFile() throws IOException {
         mkdirs();
         File file = Paths.get(filePath, fileName).toFile();
-        System.out.println();
         if(!file.exists()) {
             createEmptyFile(file);
         }
