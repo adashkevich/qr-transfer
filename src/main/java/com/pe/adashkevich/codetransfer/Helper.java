@@ -39,7 +39,7 @@ public class Helper {
     public static void main(String[] args) {
         try {
             Helper helper = new Helper();
-            helper.generateTransferPlan("qrtransfer");
+            helper.generateTransferPlan(args[0]);
         } catch (Exception e) {
             e.printStackTrace();
         }

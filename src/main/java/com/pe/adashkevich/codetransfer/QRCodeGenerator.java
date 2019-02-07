@@ -45,7 +45,7 @@ public class QRCodeGenerator extends QRCodeUtil {
 
     public void showQRCode() throws IOException, InterruptedException {
         openQRCode(qrCodePath);
-        TimeUnit.SECONDS.sleep(5);
+        TimeUnit.MILLISECONDS.sleep(1500);
         closeQRCode();
     }
 
