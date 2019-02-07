@@ -22,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 public class QRCodeGenerator extends QRCodeUtil {
 
     private static final Path qrCodePath = FileSystems.getDefault().getPath("./qr-code.png");
+    private static final byte[] end = {69, 78, 68}; // "END".getBytes(CodeTransferCfg.QR_DATA_ENCODING);
+
 
     public void generateQRCodeImage(String text)
             throws WriterException, IOException {
@@ -73,7 +75,7 @@ public class QRCodeGenerator extends QRCodeUtil {
     private Command createFileTransferCommand(File file) {
         return FileTransferCommand.builder()
                 .fileName(file.getName())
-                .filePath(file.getPath())
+                .filePath(file.getParent())
                 .fileSize((int)file.length())
                 .chunkSize(CodeTransferCfg.MAX_QR_CODE_DATA_SIZE)
                 .build();
@@ -88,7 +90,7 @@ public class QRCodeGenerator extends QRCodeUtil {
 
         byte[] fileContent;
         while ((fileContent = readBytes(is, CodeTransferCfg.MAX_QR_CODE_DATA_SIZE)).length != 0) {
-            fileContent = concat(toByteArray(counter), fileContent);
+            fileContent = concat(toByteArray(counter), fileContent, end);
             generateQRCodeImage(encode(fileContent));
             showQRCode();
             ++counter;
@@ -106,8 +108,8 @@ public class QRCodeGenerator extends QRCodeUtil {
     }
 
     public static void main(String[] args) {
-        QRCodeGenerator generator = new QRCodeGenerator();
         try {
+            QRCodeGenerator generator = new QRCodeGenerator();
             Path archivePath = Paths.get(args[0]);
             generator.transferFileByQRCodes(archivePath);
         } catch (Exception e) {

@@ -1,13 +1,17 @@
 package com.pe.adashkevich.codetransfer.commands;
 
+import com.pe.adashkevich.codetransfer.CodeTransferCfg;
 import com.pe.adashkevich.codetransfer.QRCodeScanner;
 import com.pe.adashkevich.codetransfer.QRCommandScanner;
 
-import java.io.*;
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.RandomAccessFile;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.List;
 
 public class FileTransferCommand implements Command {
 
@@ -47,12 +51,13 @@ public class FileTransferCommand implements Command {
                     break;
                 }
                 int chunkNum = qrCodeScanner.getFileChunkNumber();
-                String chunkData = qrCodeScanner.getQrCodeData();
+                String chunkData = qrCodeScanner.getFileChunkData();
                 int filePosition = chunkSize*chunkNum;
+                System.out.println(filePosition + "|" + filePosition + chunkData.length());
                 Arrays.fill(transferResult, filePosition, filePosition + chunkData.length(), Boolean.TRUE);
 
                 targetFile.seek(chunkSize*chunkNum);
-                targetFile.writeChars(chunkData);
+                targetFile.writeBytes(chunkData);
             }
         }
         targetFile.close();
@@ -136,7 +141,8 @@ public class FileTransferCommand implements Command {
 
     private void createEmptyFile(File file) throws IOException {
         RandomAccessFile raf = new RandomAccessFile(file, "rw");
-        raf.write(new byte[fileSize]);
+        raf.setLength(fileSize);
+        //raf.write(new byte[fileSize]);
         raf.close();
     }
 
@@ -153,8 +159,12 @@ public class FileTransferCommand implements Command {
     private void saveTransferResult() throws IOException {
         File transferResultFile = Paths.get(filePath, fileName + ".res").toFile();
         try(FileOutputStream fos = new FileOutputStream(transferResultFile)) {
-            try(ObjectOutputStream oos = new ObjectOutputStream(fos)) {
-                oos.writeObject(Arrays.asList(transferResult));
+            for(boolean isMissedByte : transferResult) {
+                String booleanStr = "F";
+                if (isMissedByte) {
+                    booleanStr = "T";
+                }
+                fos.write(booleanStr.getBytes(CodeTransferCfg.QR_DATA_ENCODING));
             }
         }
     }
@@ -167,19 +177,19 @@ public class FileTransferCommand implements Command {
     }
 
     private boolean[] readTransferResult() throws IOException, ClassNotFoundException {
-        File transferResultFile = Paths.get(filePath, fileName + ".res").toFile();
-        if(transferResultFile.exists()) {
-            try(FileInputStream fis = new FileInputStream(transferResultFile)) {
-                try(ObjectInputStream ois = new ObjectInputStream(fis)) {
-                    List<Boolean> transferResultWrapper =  (ArrayList)ois.readObject();
-                    transferResult = new boolean[transferResultWrapper.size()];
+        Path transferResultPath = Paths.get(filePath, fileName + ".res");
+        if(transferResultPath.toFile().exists()) {
+            byte[] fileContent = Files.readAllBytes(transferResultPath);
+            transferResult = new boolean[fileContent.length];
 
-                    for(int i = 0; i < transferResultWrapper.size(); ++i) {
-                        transferResult[i] = transferResultWrapper.get(i);
-                    }
-                    return transferResult;
+            for(int i = 0; i < fileContent.length; ++i) {
+                if((char)fileContent[i] == 'T') {
+                    transferResult[i] = true;
+                } else {
+                    transferResult[i] = false;
                 }
             }
+            return transferResult;
         } else {
             transferResult = new boolean[fileSize];
             Arrays.fill(transferResult, Boolean.FALSE);

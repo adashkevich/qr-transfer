@@ -51,7 +51,7 @@ public class QRCommandGenerator {
     private FileTransferCommand createFileTransferCommand(File file) {
         return FileTransferCommand.builder()
                 .fileName(file.getName())
-                .filePath(file.getPath())
+                .filePath(file.getParent())
                 .fileSize((int)file.length())
                 .chunkSize(CodeTransferCfg.MAX_QR_CODE_DATA_SIZE)
                 .build();
