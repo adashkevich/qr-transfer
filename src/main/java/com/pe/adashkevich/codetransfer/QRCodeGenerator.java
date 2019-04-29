@@ -53,17 +53,6 @@ public class QRCodeGenerator extends QRCodeUtil {
         Thread.sleep(QR_SHOW_TIME);
     }
 
-    private void openQRCode(Path path) throws IOException {
-        File f = path.toFile();
-        Desktop dt = Desktop.getDesktop();
-        dt.open(f);
-    }
-
-    private void closeQRCode() throws IOException, InterruptedException {
-        Runtime runtime = Runtime.getRuntime();
-        Process process = runtime.exec("Taskkill /IM Microsoft.Photos.exe /F");
-        process.waitFor(); // TODO check process finish result
-    }
 
     public byte[] readBytes(InputStream is, int bufferSize) throws IOException {
         byte[] readBytes = new byte[bufferSize];
@@ -98,7 +87,7 @@ public class QRCodeGenerator extends QRCodeUtil {
             fileContent = concat(toByteArray(position), fileContent, end);
             generateQRCodeImage(encode(fileContent));
             showQRCode(update);
-            position += fileContent.length;
+            position += fileContent.length - 7;
             counter ++;
         }
         System.out.println(String.format("File split to %d QR codes", counter));
