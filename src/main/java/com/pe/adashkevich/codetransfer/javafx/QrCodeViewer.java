@@ -1,7 +1,6 @@
 package com.pe.adashkevich.codetransfer.javafx;
 
-import com.google.zxing.WriterException;
-import com.pe.adashkevich.codetransfer.QRCodeGenerator;
+import com.pe.adashkevich.codetransfer.QRCommandGenerator;
 import javafx.application.Application;
 import javafx.application.Platform;
 import javafx.concurrent.Task;
@@ -13,17 +12,11 @@ import javafx.scene.layout.GridPane;
 import javafx.scene.paint.Color;
 import javafx.stage.Stage;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.concurrent.TimeUnit;
+import java.io.File;
 
 public class QrCodeViewer extends Application {
 
     private static String [] savedArgs;
-    //private final QrCode qrCode = new QrCode();
     private ImageView imageView;
 
     @Override
@@ -34,13 +27,17 @@ public class QrCodeViewer extends Application {
 
         imageView = new ImageView(new Image(getClass().getResourceAsStream("/screenSaver.png")));
 
-        QRCodeGenerator generator = new QRCodeGenerator(this);
         Task<Image> task = new Task<Image>() {
             @Override
             protected Image call() {
                 try {
-                    generator.transferFileByQRCodes(Paths.get(savedArgs[0]), this::updateValue);
-                } catch (IOException|InterruptedException|WriterException e) {
+                    QRCommandGenerator generator = new QRCommandGenerator();
+                    if(savedArgs[0].endsWith("Plan.csv")) {
+                        generator.processTransferPlan(savedArgs[0], this::updateValue);
+                    } else {
+                        generator.filesTransfer(new File(savedArgs[0]), this::updateValue);
+                    }
+                } catch (Exception e) {
                     e.printStackTrace();
                 } finally {
                     Platform.exit();
@@ -60,29 +57,6 @@ public class QrCodeViewer extends Application {
         stage.show();
 
         new Thread(task).start();
-    }
-
-    public void showQrCode(Path path) {
-        System.out.println("QrCodeViewer.showQrCode()");
-        try(InputStream is = Files.newInputStream(path)) {
-            imageView.setImage(new Image(is));
-            sleep();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    }
-
-    private void sleep() {
-        Platform.runLater(() -> {
-            try {
-                TimeUnit.MILLISECONDS.sleep(1000);
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } finally {
-                System.out.println("notify");
-                notify();
-            }
-        });
     }
 
     public static void main(String[] args) {

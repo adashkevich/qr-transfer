@@ -8,7 +8,6 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import com.pe.adashkevich.codetransfer.commands.Command;
 import com.pe.adashkevich.codetransfer.commands.EndFileTransferCommand;
 import com.pe.adashkevich.codetransfer.commands.FileTransferCommand;
-import com.pe.adashkevich.codetransfer.javafx.QrCodeViewer;
 import org.apache.commons.lang3.RandomStringUtils;
 
 import java.awt.*;
@@ -31,11 +30,6 @@ public class QRCodeGenerator extends QRCodeUtil {
     private static final Path qrCodePath = FileSystems.getDefault().getPath("./qr-code.png");
     private static final byte[] end = {69, 78, 68}; // "END".getBytes(CodeTransferCfg.QR_DATA_ENCODING);
     private Random random = new Random();
-    private QrCodeViewer qrCodeViewer;
-
-    public QRCodeGenerator(QrCodeViewer qrCodeViewer) {
-        this.qrCodeViewer = qrCodeViewer;
-    }
 
     public void generateQRCodeImage(String text)
             throws WriterException, IOException {
@@ -54,9 +48,7 @@ public class QRCodeGenerator extends QRCodeUtil {
     }
 
     public void showQRCode(Consumer<javafx.scene.image.Image> update) throws InterruptedException {
-        System.out.println("QRCodeGenerator.showQRCode()");
-
-//        Platform.runLater(() -> qrCodeViewer.showQrCode(qrCodePath));
+//        System.out.println("QRCodeGenerator.showQRCode()");
         update.accept(new javafx.scene.image.Image(qrCodePath.toUri().toString()));
         Thread.sleep(QR_SHOW_TIME);
     }
