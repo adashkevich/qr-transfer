@@ -6,16 +6,19 @@ import java.io.PrintWriter;
 
 public class Helper {
 
-    String planCSV = "";
+    public final static String PLAN_FILE_NAME = "fileTransferPlan.csv";
+    private String planCSV = "";
 
     public void generateTransferPlan(String entryPoint) throws FileNotFoundException {
         planCSV = createPlaneTemplate();
+        File planFile = new File(PLAN_FILE_NAME);
         addFilesToPlan(new File(entryPoint));
 
-        try (PrintWriter out = new PrintWriter("fileTransferPlan.csv")) {
+        try (PrintWriter out = new PrintWriter(planFile)) {
             out.println(planCSV);
         }
 
+        System.out.println(planFile.getAbsolutePath());
     }
 
     private void addFilesToPlan(File entryPoint) {

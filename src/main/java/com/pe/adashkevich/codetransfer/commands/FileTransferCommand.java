@@ -18,10 +18,10 @@ public class FileTransferCommand implements Command {
     private String fileName;
     private String filePath;
     private int fileSize;
-    private int chunkSize;
     private QRCodeScanner qrCodeScanner;
     private RandomAccessFile targetFile;
     private boolean[] transferResult;
+    private String hash;
 
     private FileTransferCommand() {
     }
@@ -31,13 +31,13 @@ public class FileTransferCommand implements Command {
         fileName = commandCfg[2];
         filePath = commandCfg[3];
         fileSize = Integer.parseInt(commandCfg[4]);
-        chunkSize = Integer.parseInt(commandCfg[5]);
+        hash = commandCfg[5];
         this.qrCodeScanner = qrCodeScanner;
     }
 
     @Override
     public String toString() {
-        return String.format("#cmd|TF|%s|%s|%d|%d", fileName, filePath, fileSize, chunkSize);
+        return String.format("#cmd|TF|%s|%s|%d|%s", fileName, filePath, fileSize, hash);
     }
 
     @Override
@@ -46,24 +46,23 @@ public class FileTransferCommand implements Command {
 
         targetFile = getFile();
         while (true) {
-            if(qrCodeScanner.waitQRCode()) {
-                if(QRCommandScanner.isCommand(qrCodeScanner.getQrCodeData())) {
+            if (qrCodeScanner.waitQRCode()) {
+                if (QRCommandScanner.isCommand(qrCodeScanner.getQrCodeData())) {
                     break;
                 }
-                int chunkNum = qrCodeScanner.getFileChunkNumber();
+                int filePosition = qrCodeScanner.getFilePosition();
                 String chunkData = qrCodeScanner.getFileChunkData();
-                int filePosition = chunkSize*chunkNum;
                 System.out.println(filePosition + "-" + (filePosition + chunkData.length()));
                 Arrays.fill(transferResult, filePosition, filePosition + chunkData.length(), Boolean.TRUE);
 
-                targetFile.seek(chunkSize*chunkNum);
+                targetFile.seek(filePosition);
                 targetFile.writeBytes(chunkData);
             }
         }
         targetFile.close();
 
         int missedBytesCount = missedBytes(transferResult);
-        if(missedBytesCount == 0) {
+        if (missedBytesCount == 0) {
             System.out.println(String.format("File %s was successfully transferred", fileName));
             removeTransferResult();
         } else {
@@ -80,8 +79,8 @@ public class FileTransferCommand implements Command {
         private String fileName;
         private String filePath;
         private int fileSize;
-        private int chunkSize;
         private QRCodeScanner qrCodeScanner;
+        private String hash;
 
         private Builder() {
         }
@@ -101,13 +100,13 @@ public class FileTransferCommand implements Command {
             return this;
         }
 
-        public Builder chunkSize(int chunkSize) {
-            this.chunkSize = chunkSize;
+        public Builder qrCodeScanner(QRCodeScanner qrCodeScanner) {
+            this.qrCodeScanner = qrCodeScanner;
             return this;
         }
 
-        public Builder qrCodeScanner(QRCodeScanner qrCodeScanner) {
-            this.qrCodeScanner = qrCodeScanner;
+        public Builder hash(String hash) {
+            this.hash = hash;
             return this;
         }
 
@@ -116,8 +115,9 @@ public class FileTransferCommand implements Command {
             fileTransferCommand.filePath = this.filePath;
             fileTransferCommand.fileName = this.fileName;
             fileTransferCommand.fileSize = this.fileSize;
-            fileTransferCommand.chunkSize = this.chunkSize;
             fileTransferCommand.qrCodeScanner = this.qrCodeScanner;
+            fileTransferCommand.hash = this.hash;
+            System.out.println(fileTransferCommand.toString());
             return fileTransferCommand;
         }
     }
@@ -125,7 +125,7 @@ public class FileTransferCommand implements Command {
     public RandomAccessFile getFile() throws IOException {
         mkdirs();
         File file = Paths.get(filePath, fileName).toFile();
-        if(!file.exists()) {
+        if (!file.exists()) {
             createEmptyFile(file);
         }
         return new RandomAccessFile(file, "rw");
@@ -133,7 +133,7 @@ public class FileTransferCommand implements Command {
 
     private void mkdirs() {
         File file = Paths.get(filePath).toFile();
-        if(!file.exists()) {
+        if (!file.exists()) {
             file.mkdirs();
         }
     }
@@ -147,8 +147,8 @@ public class FileTransferCommand implements Command {
 
     private int missedBytes(boolean[] transferResult) {
         int missedBytes = 0;
-        for(int i = 0; i < transferResult.length; ++i) {
-            if(!transferResult[i]) {
+        for (int i = 0; i < transferResult.length; ++i) {
+            if (!transferResult[i]) {
                 ++missedBytes;
             }
         }
@@ -157,8 +157,8 @@ public class FileTransferCommand implements Command {
 
     private void saveTransferResult() throws IOException {
         File transferResultFile = Paths.get(filePath, fileName + ".res").toFile();
-        try(FileOutputStream fos = new FileOutputStream(transferResultFile)) {
-            for(boolean isMissedByte : transferResult) {
+        try (FileOutputStream fos = new FileOutputStream(transferResultFile)) {
+            for (boolean isMissedByte : transferResult) {
                 String booleanStr = "F";
                 if (isMissedByte) {
                     booleanStr = "T";
@@ -170,19 +170,19 @@ public class FileTransferCommand implements Command {
 
     private void removeTransferResult() {
         File transferResultFile = Paths.get(filePath, fileName + ".res").toFile();
-        if(transferResultFile.exists()) {
+        if (transferResultFile.exists()) {
             transferResultFile.delete();
         }
     }
 
-    private boolean[] readTransferResult() throws IOException, ClassNotFoundException {
+    private boolean[] readTransferResult() throws IOException {
         Path transferResultPath = Paths.get(filePath, fileName + ".res");
-        if(transferResultPath.toFile().exists()) {
+        if (transferResultPath.toFile().exists()) {
             byte[] fileContent = Files.readAllBytes(transferResultPath);
             transferResult = new boolean[fileContent.length];
 
-            for(int i = 0; i < fileContent.length; ++i) {
-                if((char)fileContent[i] == 'T') {
+            for (int i = 0; i < fileContent.length; ++i) {
+                if ((char) fileContent[i] == 'T') {
                     transferResult[i] = true;
                 } else {
                     transferResult[i] = false;
@@ -199,11 +199,11 @@ public class FileTransferCommand implements Command {
     public static void main(String[] args) {
         try {
             Command command = FileTransferCommand.builder()
-                    .fileName("Bot.java")
-                    .filePath("src/main/java/com.pg.code")
-                    .fileSize(17000)
-                    .chunkSize(1000)
+                    .fileName("ImgElement.java")
+                    .filePath("path/to/file")
+                    .fileSize(100500)
                     .qrCodeScanner(new QRCodeScanner())
+                    .hash("abcd")
                     .build();
 
             command.exec();

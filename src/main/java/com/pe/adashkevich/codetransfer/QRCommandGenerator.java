@@ -15,7 +15,7 @@ public class QRCommandGenerator {
     private QRCodeGenerator qrCodeGenerator;
 
     public QRCommandGenerator() {
-        qrCodeGenerator = new QRCodeGenerator();
+        //qrCodeGenerator = new QRCodeGenerator();
     }
 
     public boolean skeletonTransfer(File entryPoint) throws IOException, WriterException, InterruptedException {
@@ -31,7 +31,7 @@ public class QRCommandGenerator {
             if(!alreadyCreate) {
                 qrCodeGenerator.generateQRCodeImage(MakeDirectoryCommand.Builder.getBuilder()
                         .folderPath(entryPoint.toString()).build().toString());
-                qrCodeGenerator.showQRCode();
+                //qrCodeGenerator.showQRCode();
                 System.out.println(entryPoint.toString());
             }
             return true;
@@ -45,7 +45,7 @@ public class QRCommandGenerator {
                 filesTransfer(innerFile);
             }
         } else {
-            qrCodeGenerator.transferFileByQRCodes(Paths.get(entryPoint.getPath()));
+            //qrCodeGenerator.transferFileByQRCodes(Paths.get(entryPoint.getPath()));
             System.out.println(entryPoint.toString());
         }
     }
@@ -55,7 +55,7 @@ public class QRCommandGenerator {
                 .fileName(file.getName())
                 .filePath(file.getParent())
                 .fileSize((int)file.length())
-                .chunkSize(CodeTransferCfg.MAX_QR_CODE_DATA_SIZE)
+                .hash("abcde")
                 .build();
     }
 

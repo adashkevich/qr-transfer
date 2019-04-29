@@ -82,7 +82,7 @@ public class QRCodeScanner extends QRCodeUtil {
         return qrCodeData;
     }
 
-    public int getFileChunkNumber() throws UnsupportedEncodingException {
+    public int getFilePosition() throws UnsupportedEncodingException {
         return getQRCodeNumber(qrCodeData);
     }
 

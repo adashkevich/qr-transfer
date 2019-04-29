@@ -8,30 +8,40 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import com.pe.adashkevich.codetransfer.commands.Command;
 import com.pe.adashkevich.codetransfer.commands.EndFileTransferCommand;
 import com.pe.adashkevich.codetransfer.commands.FileTransferCommand;
+import com.pe.adashkevich.codetransfer.javafx.QrCodeViewer;
+import org.apache.commons.lang3.RandomStringUtils;
 
 import java.awt.*;
-import java.io.*;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.charset.Charset;
 import java.nio.file.FileSystems;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.Arrays;
-import java.util.concurrent.TimeUnit;
+import java.util.Random;
+import java.util.function.Consumer;
+
+import static com.pe.adashkevich.codetransfer.CodeTransferCfg.*;
 
 public class QRCodeGenerator extends QRCodeUtil {
 
     private static final Path qrCodePath = FileSystems.getDefault().getPath("./qr-code.png");
     private static final byte[] end = {69, 78, 68}; // "END".getBytes(CodeTransferCfg.QR_DATA_ENCODING);
+    private Random random = new Random();
+    private QrCodeViewer qrCodeViewer;
 
+    public QRCodeGenerator(QrCodeViewer qrCodeViewer) {
+        this.qrCodeViewer = qrCodeViewer;
+    }
 
     public void generateQRCodeImage(String text)
             throws WriterException, IOException {
-        //System.out.println("========================");
-        //System.out.println(text);
         QRCodeWriter qrCodeWriter = new QRCodeWriter();
-        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, CodeTransferCfg.QR_CODE_IMAGE_SIZE,
-                CodeTransferCfg.QR_CODE_IMAGE_SIZE);
+        BitMatrix bitMatrix = qrCodeWriter.encode(text, BarcodeFormat.QR_CODE, QR_CODE_IMAGE_SIZE,
+                QR_CODE_IMAGE_SIZE);
         MatrixToImageWriter.writeToPath(bitMatrix, "PNG", qrCodePath);
     }
 
@@ -40,13 +50,15 @@ public class QRCodeGenerator extends QRCodeUtil {
     }
 
     private String encode(byte[] bytes) {
-        return new String(bytes, Charset.forName(CodeTransferCfg.QR_DATA_ENCODING));
+        return new String(bytes, Charset.forName(QR_DATA_ENCODING));
     }
 
-    public void showQRCode() throws IOException, InterruptedException {
-        openQRCode(qrCodePath);
-        TimeUnit.MILLISECONDS.sleep(1500);
-        closeQRCode();
+    public void showQRCode(Consumer<javafx.scene.image.Image> update) throws InterruptedException {
+        System.out.println("QRCodeGenerator.showQRCode()");
+
+//        Platform.runLater(() -> qrCodeViewer.showQrCode(qrCodePath));
+        update.accept(new javafx.scene.image.Image(qrCodePath.toUri().toString()));
+        Thread.sleep(QR_SHOW_TIME);
     }
 
     private void openQRCode(Path path) throws IOException {
@@ -77,43 +89,54 @@ public class QRCodeGenerator extends QRCodeUtil {
                 .fileName(file.getName())
                 .filePath(file.getParent())
                 .fileSize((int)file.length())
-                .chunkSize(CodeTransferCfg.MAX_QR_CODE_DATA_SIZE)
+                .hash(generateHash())
                 .build();
     }
 
-    public void transferFileByQRCodes(Path path) throws IOException, InterruptedException, WriterException {
+    public void transferFileByQRCodes(Path path, Consumer<javafx.scene.image.Image> update) throws IOException, InterruptedException, WriterException {
         generateQRCodeImage(createFileTransferCommand(path.toFile()).toString());
-        showQRCode();
+        showQRCode(update);
 
+        int position = 0;
         int counter = 0;
         InputStream is = new FileInputStream(path.toFile());
 
         byte[] fileContent;
-        while ((fileContent = readBytes(is, CodeTransferCfg.MAX_QR_CODE_DATA_SIZE)).length != 0) {
-            fileContent = concat(toByteArray(counter), fileContent, end);
+        while ((fileContent = readBytes(is, getChunkSize())).length != 0) {
+            fileContent = concat(toByteArray(position), fileContent, end);
             generateQRCodeImage(encode(fileContent));
-            showQRCode();
-            ++counter;
+            showQRCode(update);
+            position += fileContent.length;
+            counter ++;
         }
         System.out.println(String.format("File split to %d QR codes", counter));
 
         generateQRCodeImage(new EndFileTransferCommand().toString());
-        showQRCode();
+        showQRCode(update);
     }
 
-    private void createFileNameQRCode(Path path) throws IOException, WriterException, InterruptedException {
-        byte[] fileContent = concat(toByteArray(0), path.getFileName().toString().getBytes(CodeTransferCfg.QR_DATA_ENCODING));
-        generateQRCodeImage(encode(fileContent));
-        showQRCode();
+    public int getChunkSize() {
+        return random.ints(QR_CODE_MIN_SIZE, QR_CODE_MAX_SIZE).findFirst().getAsInt();
     }
+
+    private String generateHash() {
+        int length = random.ints(4, 8).findFirst().getAsInt();
+        return RandomStringUtils.random(length, true, false);
+    }
+
+//    private void createFileNameQRCode(Path path) throws IOException, WriterException, InterruptedException {
+//        byte[] fileContent = concat(toByteArray(0), path.getFileName().toString().getBytes(CodeTransferCfg.QR_DATA_ENCODING));
+//        generateQRCodeImage(encode(fileContent));
+//        showQRCode();
+//    }
 
     public static void main(String[] args) {
-        try {
-            QRCodeGenerator generator = new QRCodeGenerator();
-            Path archivePath = Paths.get(args[0]);
-            generator.transferFileByQRCodes(archivePath);
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+//        try {
+//            QRCodeGenerator generator = new QRCodeGenerator();
+//            Path archivePath = Paths.get(args[0]);
+//            generator.transferFileByQRCodes(archivePath);
+//        } catch (Exception e) {
+//            e.printStackTrace();
+//        }
     }
 }
