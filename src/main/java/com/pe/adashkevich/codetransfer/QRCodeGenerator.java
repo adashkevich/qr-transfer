@@ -75,7 +75,9 @@ public class QRCodeGenerator extends QRCodeUtil {
     }
 
     public void transferFileByQRCodes(Path path, Consumer<javafx.scene.image.Image> update) throws IOException, InterruptedException, WriterException {
-        generateQRCodeImage(createFileTransferCommand(path.toFile()).toString());
+        for(int i = 0; i < 5; ++i) {
+            generateQRCodeImage(createFileTransferCommand(path.toFile()).toString());
+        }
         showQRCode(update);
 
         int position = 0;

@@ -19,7 +19,7 @@ public class QRCommandScanner {
         return qrData.startsWith("#cmd");
     }
 
-    private Command scanCommand(String qrData) throws Exception {
+    public Command scanCommand(String qrData) throws Exception {
         StringTokenizer commandStr = new StringTokenizer(qrData, "|");
 
         if(!commandStr.hasMoreTokens() || !"#cmd".equals(commandStr.nextToken())) {

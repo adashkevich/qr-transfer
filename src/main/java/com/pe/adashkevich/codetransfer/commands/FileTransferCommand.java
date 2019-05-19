@@ -12,6 +12,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Arrays;
+import java.util.Objects;
 
 public class FileTransferCommand implements Command {
 
@@ -22,6 +23,7 @@ public class FileTransferCommand implements Command {
     private RandomAccessFile targetFile;
     private boolean[] transferResult;
     private String hash;
+    private QRCommandScanner scanner = new QRCommandScanner();
 
     private FileTransferCommand() {
     }
@@ -48,7 +50,15 @@ public class FileTransferCommand implements Command {
         while (true) {
             if (qrCodeScanner.waitQRCode()) {
                 if (QRCommandScanner.isCommand(qrCodeScanner.getQrCodeData())) {
-                    break;
+                    Command command = scanner.scanCommand(qrCodeScanner.getQrCodeData());
+                    if (command instanceof EndFileTransferCommand) {
+                        break;
+                    } else if (command instanceof EndFileTransferCommand) {
+                        if(this.equals(command)) {
+                            continue;
+                        }
+                        break;
+                    }
                 }
                 int filePosition = qrCodeScanner.getFilePosition();
                 String chunkData = qrCodeScanner.getFileChunkData();
@@ -210,5 +220,20 @@ public class FileTransferCommand implements Command {
         } catch (Exception e) {
             e.printStackTrace();
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof FileTransferCommand)) return false;
+        FileTransferCommand command = (FileTransferCommand) o;
+        return fileSize == command.fileSize &&
+                Objects.equals(fileName, command.fileName) &&
+                Objects.equals(filePath, command.filePath);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(fileName, filePath, fileSize);
     }
 }
