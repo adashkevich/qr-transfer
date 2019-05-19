@@ -86,7 +86,8 @@ public class QRCodeGenerator extends QRCodeUtil {
 
         byte[] fileContent;
         while ((fileContent = readBytes(is, getChunkSize())).length != 0) {
-            fileContent = concat(toByteArray(position), fileContent, end);
+            fileContent = concat(toByteArray(position), fileContent,
+                    RandomStringUtils.random(3, true, false).getBytes(CodeTransferCfg.QR_DATA_ENCODING));
             generateQRCodeImage(encode(fileContent));
             showQRCode(update);
             position += fileContent.length - 7;
