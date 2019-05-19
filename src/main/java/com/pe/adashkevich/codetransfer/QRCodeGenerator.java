@@ -10,7 +10,6 @@ import com.pe.adashkevich.codetransfer.commands.EndFileTransferCommand;
 import com.pe.adashkevich.codetransfer.commands.FileTransferCommand;
 import org.apache.commons.lang3.RandomStringUtils;
 
-import java.awt.*;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -77,8 +76,8 @@ public class QRCodeGenerator extends QRCodeUtil {
     public void transferFileByQRCodes(Path path, Consumer<javafx.scene.image.Image> update) throws IOException, InterruptedException, WriterException {
         for(int i = 0; i < 5; ++i) {
             generateQRCodeImage(createFileTransferCommand(path.toFile()).toString());
+            showQRCode(update);
         }
-        showQRCode(update);
 
         int position = 0;
         int counter = 0;
