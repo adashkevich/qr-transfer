@@ -79,27 +79,33 @@ public class QRCodeGenerator extends QRCodeUtil {
             showQRCode(update);
         }
 
-        int position = 0;
-        int counter = 0;
-        InputStream is = new FileInputStream(path.toFile());
+        int fileSize = (int)path.toFile().length();
+        for(int i = 0; i < 3; ++i) {
+            int position = 0;
+            int counter = 0;
+            InputStream is = new FileInputStream(path.toFile());
 
-        byte[] fileContent;
-        while ((fileContent = readBytes(is, getChunkSize())).length != 0) {
-            fileContent = concat(toByteArray(position), fileContent,
-                    RandomStringUtils.random(3, true, false).getBytes(CodeTransferCfg.QR_DATA_ENCODING));
-            generateQRCodeImage(encode(fileContent));
-            showQRCode(update);
-            position += fileContent.length - 7;
-            counter ++;
+            byte[] fileContent;
+            while ((fileContent = readBytes(is, getChunkSize(fileSize))).length != 0) {
+                fileContent = concat(toByteArray(position), fileContent,
+                        RandomStringUtils.random(3, true, false).getBytes(CodeTransferCfg.QR_DATA_ENCODING));
+                generateQRCodeImage(encode(fileContent));
+                showQRCode(update);
+                position += fileContent.length - 7;
+                counter ++;
+            }
+            System.out.println(String.format("File split to %d QR codes", counter));
         }
-        System.out.println(String.format("File split to %d QR codes", counter));
 
         generateQRCodeImage(new EndFileTransferCommand().toString());
         showQRCode(update);
     }
 
-    public int getChunkSize() {
-        return random.ints(QR_CODE_MIN_SIZE, QR_CODE_MAX_SIZE).findFirst().getAsInt();
+    public int getChunkSize(int fileSize) {
+        if( fileSize > QR_CODE_MIN_SIZE) {
+            return random.ints(QR_CODE_MIN_SIZE, QR_CODE_MAX_SIZE).findFirst().getAsInt();
+        }
+        return random.ints(1, fileSize).findFirst().getAsInt();
     }
 
     private String generateHash() {

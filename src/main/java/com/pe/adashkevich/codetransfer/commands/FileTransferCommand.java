@@ -47,28 +47,33 @@ public class FileTransferCommand implements Command {
         readTransferResult();
 
         targetFile = getFile();
-        while (true) {
-            if (qrCodeScanner.waitQRCode()) {
-                if (QRCommandScanner.isCommand(qrCodeScanner.getQrCodeData())) {
-                    Command command = scanner.scanCommand(qrCodeScanner.getQrCodeData());
-                    if (command instanceof EndFileTransferCommand) {
-                        break;
-                    } else if (command instanceof EndFileTransferCommand) {
-                        if(this.equals(command)) {
-                            continue;
+        try {
+            while (true) {
+                if (qrCodeScanner.waitQRCode()) {
+                    if (QRCommandScanner.isCommand(qrCodeScanner.getQrCodeData())) {
+                        Command command = scanner.scanCommand(qrCodeScanner.getQrCodeData());
+                        if (command instanceof EndFileTransferCommand) {
+                            break;
+                        } else if (command instanceof FileTransferCommand) {
+                            if(this.equals(command)) {
+                                continue;
+                            }
+                            break;
                         }
-                        break;
                     }
-                }
-                int filePosition = qrCodeScanner.getFilePosition();
-                String chunkData = qrCodeScanner.getFileChunkData();
-                System.out.println(filePosition + "-" + (filePosition + chunkData.length()));
-                Arrays.fill(transferResult, filePosition, filePosition + chunkData.length(), Boolean.TRUE);
+                    int filePosition = qrCodeScanner.getFilePosition();
+                    String chunkData = qrCodeScanner.getFileChunkData();
+                    System.out.println(filePosition + "-" + (filePosition + chunkData.length()));
+                    Arrays.fill(transferResult, filePosition, filePosition + chunkData.length(), Boolean.TRUE);
 
-                targetFile.seek(filePosition);
-                targetFile.writeBytes(chunkData);
+                    targetFile.seek(filePosition);
+                    targetFile.writeBytes(chunkData);
+                }
             }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
+
         targetFile.close();
 
         int missedBytesCount = missedBytes(transferResult);
