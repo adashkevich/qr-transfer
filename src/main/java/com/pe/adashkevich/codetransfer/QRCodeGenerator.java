@@ -102,7 +102,7 @@ public class QRCodeGenerator extends QRCodeUtil {
     }
 
     public int getChunkSize(int fileSize) {
-        if( fileSize > QR_CODE_MIN_SIZE) {
+        if( fileSize > QR_CODE_MAX_SIZE) {
             return random.ints(QR_CODE_MIN_SIZE, QR_CODE_MAX_SIZE).findFirst().getAsInt();
         }
         return random.ints(1, fileSize).findFirst().getAsInt();
